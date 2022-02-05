@@ -114,7 +114,7 @@ public class A_Unit_Test {
     static testMethod void runTest() {
         Contact c1 = new Contact(LastName='C1');
         Contact c2 = new Contact(LastName='C2');
-        INSERT new List<Contact>{c1, c2}; // Fails with stack trace as follows:
+        INSERT new List<Contact>{c1, c2};
     }
 }
 ```
