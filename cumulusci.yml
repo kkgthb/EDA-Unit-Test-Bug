@@ -1,0 +1,12 @@
+minimum_cumulusci_version: '3.31.0'
+project:
+    name: EDA-Unit-Test-Bug
+    package:
+        name: EDA-Unit-Test-Bug
+        api_version: '53.0'
+    dependencies:
+        - github: https://github.com/SalesforceFoundation/EDA
+        - github: https://github.com/Kathy-Lueckeman/EASY-Open-Source-Solution
+    git:
+        default_branch: 'main'
+    source_format: sfdx
