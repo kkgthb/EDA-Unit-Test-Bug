@@ -104,6 +104,21 @@ I think Marc missed something important -- records in the "Trigger Handler" tabl
 
 So there's some sort of bug in EDA that is making all of the "Trigger Handler" records that normally would be shipped to an org upon installing EDA also end up "shipped to" every single unit test's execution context in an org, which is definitely **not** how Salesforce developers are taught to expect unit test execution contexts to behave.  _(**Data** should never exist in the execution context unless explicitly opted into with `SeeAllData`.)_
 
+I am of the strong opinion that it is **bug**, not "feature", behavior of EDA's codebase to interfere with the normal behavior of unit test execution contexts and force every unit test ever to **opt out** of having a bazillion "default" **Trigger Handler** records exist, rather than having a blank slate of data as is promised by every training ever conducted for developers about the nature of Salesforce unit tests.
+
+This unit test should definitely _not_ surprise developers working in EDA orgs by firing every single trigger handler that comes with EDA when it hits the `INSERT` simply because they didn't know there was a secret thing they had to do to make EDA _not_ secretly insert a bunch of records into the execution context's **Trigger Handler** table behind their backs:
+
+```java
+@isTest
+public class A_Unit_Test {
+    static testMethod void runTest() {
+        Contact c1 = new Contact(LastName='C1');
+        Contact c2 = new Contact(LastName='C2');
+        INSERT new List<Contact>{c1, c2}; // Fails with stack trace as follows:
+    }
+}
+```
+
 ### Aside
 
 I understand that my examples of finding this bug are a little strange:
@@ -116,9 +131,11 @@ Similarly, if someone wants to create a strange field on Account that works for 
 
 ## Possible bug location
 
-I think that perhaps Salesforce's EDA team might have put some sort of utility function _(responsible for doing a bunch of `INSERT`s into the **Trigger Handler** table)_ into their codebase to help make it easier to write their own unit tests, but accidentally invoked this utility function from actual TDTM code instead of only from its unit tests' test setup?  That might be responsible for _all_ unit tests somehow having a bunch of records exist in **Trigger Handler** when the table should normally be empty.
+I think that perhaps the EDA codebase might have some sort of utility function _(responsible for doing a bunch of `INSERT`s into the **Trigger Handler** table)_ to help make it easier to write unit tests within EDA ... but but that the utility function accidentally got invoked from **actual** TDTM code instead of only from EDA's unit tests' test setup?
 
-I think it might be this part of [TDTM_Config](https://github.com/SalesforceFoundation/EDA/blob/main/force-app/main/tdtm/classes/TDTM_Config.cls):
+That might be responsible for _all_ unit tests somehow having a bunch of records exist in **Trigger Handler** when the table should **normally** be empty **unless** a developer **explicitly** tries to **opt into** filling **Trigger Handler** with "EDA defaults."
+
+Perhaps it's this part of [TDTM_Config](https://github.com/SalesforceFoundation/EDA/blob/main/force-app/main/tdtm/classes/TDTM_Config.cls)?
 
 ```java
 // Getting the default configuration only if there is no data in the Trigger Handler object. Otherwise
@@ -127,8 +144,6 @@ if(tdtmConfig.size() == 0) {
     tdtmConfig = TDTM_DefaultConfig.getDefaultRecords();
 }
 ```
-
-I think this is awfully presumptuous of of this code -- definitely a **bug**, not a "feature" -- to presume that just because the author of a unit test didn't explicitly turn on any TDTM trigger handlers yet at a given point of DML in their test, they secretly want all of EDA's default trigger handlers turned on.
 
 ## Thank you!
 
